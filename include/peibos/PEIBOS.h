@@ -164,7 +164,6 @@ void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix gen
   capd::interval finalTime(tf);
 
   vector<Matrix> symmetries = generate_symmetries(generators, psi_0);
-  cout << symmetries.size()<< " symmetries" << endl;
   for (int i = 0; i < symmetries.size(); i++)
   {
     IntervalMatrix symmetry = symmetries[i];
@@ -227,7 +226,6 @@ void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, Matrix generators
   output.draw_axes();
 
   vector<Matrix> symmetries = generate_symmetries(generators, psi_0);
-  cout << symmetries.size()<< " symmetries" << endl;
   for (int i = 0; i < symmetries.size(); i++)
   {
     IntervalMatrix symmetry = symmetries[i];
