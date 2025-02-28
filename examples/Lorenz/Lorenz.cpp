@@ -5,7 +5,7 @@
 
 int main()
 {
-  capd::IMap vectorField("par:sigma,rho,beta;var:x1,x2,x3;fun:10*(x2-x1),28*x1-x2-x1*x3,-2.6*x3+x1*x2;");
+  capd::IMap vectorField("par:sigma,rho,beta;var:x1,x2,x3;fun:sigma*(x2-x1),rho*x1-x2-x1*x3,-beta*x3+x1*x2;");
   vectorField.setParameter("sigma", 10.);
   vectorField.setParameter("rho", 28.);
   vectorField.setParameter("beta", 8/3);

@@ -210,7 +210,7 @@ void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix gen
 
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-      output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size())));
+      output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
       
@@ -252,7 +252,7 @@ void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, Matrix generators
 
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-      output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size())));
+      output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
       
