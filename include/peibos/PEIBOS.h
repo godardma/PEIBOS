@@ -29,25 +29,25 @@ double distance_from_line_to_origin(Eigen::Matrix<double,3,1> a, Eigen::Matrix<d
 }
 
 
-Matrix from_cauchy (Vector p)
-{
-  Matrix perm = Matrix::Zero(p.size(),p.size());
-  for (int i = 0; i < p.size(); i++)
-  {
-    perm(abs(p[i])-1,i)=sign(p[i]);
-  }
-  return perm;
-}
+// Matrix from_cauchy (Vector p)
+// {
+//   Matrix perm = Matrix::Zero(p.size(),p.size());
+//   for (int i = 0; i < p.size(); i++)
+//   {
+//     perm(abs(p[i])-1,i)=sign(p[i]);
+//   }
+//   return perm;
+// }
 
 template <typename T>
-bool contains (vector<Matrix> symmetries, Matrix symmetry, AnalyticFunction<T>& psi_0)
+bool contains (vector<OctaSym> symmetries, OctaSym symmetry, AnalyticFunction<T>& psi_0)
 {
-  IntervalVector test_box =  Interval(-1.,1.)*IntervalVector::Ones(symmetry.cols()-1);
+  IntervalVector test_box =  Interval(-1.,1.)*IntervalVector::Ones(symmetry.size()-1);
   IntervalVector psi_0_x = psi_0.eval(EvalMode::NATURAL,test_box);
   
-  for (Matrix s : symmetries)
+  for (OctaSym s : symmetries)
   {
-    if ((s*psi_0_x) == (symmetry*psi_0_x))
+    if ((s(psi_0_x)) == (symmetry(psi_0_x)))
     {
       return true;
     }
@@ -56,31 +56,31 @@ bool contains (vector<Matrix> symmetries, Matrix symmetry, AnalyticFunction<T>& 
 }
 
 template <typename T>
-vector<Matrix> generate_symmetries (Matrix generators, AnalyticFunction<T>& psi_0)
+vector<OctaSym> generate_symmetries (vector<initializer_list<int>> generators, AnalyticFunction<T>& psi_0)
 {
-  vector<Matrix> symmetries;
+  vector<OctaSym> symmetries;
 
   // Add the generators
-  for (int i = 0; i < generators.rows(); i++)
+  for (int i = 0; i < generators.size(); i++)
   {
-    Matrix symmetry = from_cauchy(generators.row(i));
+    OctaSym symmetry = OctaSym(generators[i]);
     symmetries.push_back(symmetry);
   }
 
   // Add the inverses
-  for (int i = 0; i < generators.rows(); i++)
+  for (int i = 0; i < generators.size(); i++)
   {
-    Matrix symmetry = from_cauchy(generators.row(i));
-    if (!contains(symmetries, symmetry.inverse(), psi_0))
+    OctaSym symmetry = OctaSym(generators[i]);
+    if (!contains(symmetries, symmetry.invert(), psi_0))
     {
-      symmetries.push_back(symmetry.inverse());
+      symmetries.push_back(symmetry.invert());
     }
   }
 
   // Add the squares
-  for (int i = 0; i < generators.rows(); i++)
+  for (int i = 0; i < generators.size(); i++)
   {
-    Matrix symmetry = from_cauchy(generators.row(i));
+    OctaSym symmetry = OctaSym(generators[i]);
     if (!contains(symmetries, symmetry*symmetry, psi_0))
     {
       symmetries.push_back(symmetry*symmetry);
@@ -88,14 +88,14 @@ vector<Matrix> generate_symmetries (Matrix generators, AnalyticFunction<T>& psi_
   }
 
   // Add the products
-  for (int i = 0; i < generators.rows(); i++)
+  for (int i = 0; i < generators.size(); i++)
   {
-    for (int j = 0; j < generators.rows(); j++)
+    for (int j = 0; j < generators.size(); j++)
     {
       if (i != j)
       {
-        Matrix symmetry1 = from_cauchy(generators.row(i));
-        Matrix symmetry2 = from_cauchy(generators.row(j));
+        OctaSym symmetry1 = OctaSym(generators[i]);
+        OctaSym symmetry2 = OctaSym(generators[j]);
         if (!contains(symmetries, symmetry1*symmetry2, psi_0))
         {
           symmetries.push_back(symmetry1*symmetry2);
@@ -107,14 +107,14 @@ vector<Matrix> generate_symmetries (Matrix generators, AnalyticFunction<T>& psi_
 }
 
 template <typename T>
-double error(IntervalMatrix JJf, IntervalMatrix JJf_punc, AnalyticFunction<T>& psi_0, IntervalMatrix symmetry, IntervalVector X)
+double error(IntervalMatrix JJf, IntervalMatrix JJf_punc, AnalyticFunction<T>& psi_0, OctaSym symmetry, IntervalVector X)
 {
   auto xc = X.mid();
 
   IntervalVector dX=X-xc;
+  IntervalMatrix JJg_punc=JJf_punc*IntervalMatrix(symmetry.permutation_matrix())*psi_0.diff(xc);
 
-  IntervalMatrix JJg_punc=JJf_punc*symmetry*psi_0.diff(xc);
-  IntervalMatrix JJg=JJf*symmetry*psi_0.diff(X);
+  IntervalMatrix JJg=JJf*IntervalMatrix(symmetry.permutation_matrix())*psi_0.diff(X);
 
   IntervalVector E = (JJg - JJg_punc)*dX;
   Interval N = sqr(E[0]) + sqr(E[1]);
@@ -147,11 +147,13 @@ Matrix inflate_flat_parallelepiped (IntervalMatrix Jz, double epsilon, double rh
 }
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix generators , double epsilon, string output_name)
+void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, vector<initializer_list<int>> generators , double epsilon, string output_name)
 {
+  // Grpahical output
   Figure3D output(output_name);
   output.draw_axes();
   
+  // CAPD solver setup
   capd::IOdeSolver solver(gamma, 20);
   solver.setAbsoluteTolerance(1e-20);
   solver.setRelativeTolerance(1e-20);
@@ -163,17 +165,19 @@ void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix gen
   capd::interval initialTime(0.);
   capd::interval finalTime(tf);
 
-  vector<Matrix> symmetries = generate_symmetries(generators, psi_0);
+  // Generate the symmetries from the generators
+  vector<OctaSym> symmetries = generate_symmetries(generators, psi_0);
   for (int i = 0; i < symmetries.size(); i++)
   {
-    IntervalMatrix symmetry = symmetries[i];
+    OctaSym symmetry = symmetries[i];
     for (double t1 = -1; t1 < 1; t1 += epsilon)
     {
       for (double t2 = -1;t2 < 1; t2+=epsilon)
       {
 
+      // To get the flow function and its Jacobian (monodromy matrix) for [x]
       IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-      IntervalVector Y = symmetry*psi_0.eval(X);
+      IntervalVector Y = symmetry(psi_0.eval(X));
 
       capd::IMatrix monodromyMatrix(3,3);
       capd::ITimeMap::SolutionCurve solution(initialTime); 
@@ -186,9 +190,9 @@ void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix gen
       capd::IVector result = timeMap(finalTime, s, monodromyMatrix);
       IntervalMatrix JJf=to_codac(monodromyMatrix);
 
-
+      // To get the flow function and its Jacobian (monodromy matrix) for x_hat
       auto xc = X.mid();
-      auto yc = (symmetry*psi_0.eval(xc)).mid();
+      auto yc = (symmetry(psi_0.eval(xc))).mid();
 
       capd::IMatrix monodromyMatrix_punc(3,3);
       capd::ITimeMap::SolutionCurve solution_punct(initialTime);
@@ -202,61 +206,66 @@ void PEIBOS(capd::IMap& gamma, double tf, AnalyticFunction<T>& psi_0, Matrix gen
       capd::IVector result_punct = timeMap_punc(finalTime, s_punct, monodromyMatrix_punc);
       IntervalMatrix JJf_punc=to_codac(monodromyMatrix_punc);
 
+      // Center of the parallelepiped
       Vector z = Vector(to_codac(result).mid());
       
+      // Maximum error computation
       double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
 
-      IntervalMatrix Jz = (JJf_punc * symmetry*psi_0.diff(X)).mid();
+      IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
 
+      // Inflation of the parallelepiped
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
       output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
-      
     }
   }
-
 }
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, Matrix generators , double epsilon, string output_name)
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<initializer_list<int>> generators , double epsilon, string output_name)
 {
+  // Grpahical output
   Figure3D output(output_name);
   output.draw_axes();
 
-  vector<Matrix> symmetries = generate_symmetries(generators, psi_0);
+  // Generate the symmetries from the generators
+  vector<OctaSym> symmetries = generate_symmetries(generators, psi_0);
   for (int i = 0; i < symmetries.size(); i++)
   {
-    IntervalMatrix symmetry = symmetries[i];
+    OctaSym symmetry = symmetries[i];
+    
     for (double t1 = -1; t1 < 1; t1 += epsilon)
     {
       for (double t2 = -1;t2 < 1; t2+=epsilon)
       {
 
       IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-      IntervalVector Y = symmetry*psi_0.eval(X);
+      IntervalVector Y = symmetry(psi_0.eval(X));
 
       IntervalMatrix JJf=f.diff(Y);
 
       auto xc = X.mid();
-      auto yc = (symmetry*psi_0.eval(xc)).mid();
+      auto yc = (symmetry(psi_0.eval(xc))).mid();
 
       IntervalMatrix JJf_punc=f.diff(yc).mid();
 
+      // Center of the parallelepiped
       Vector z = f.eval(yc).mid();
-      
+
+      // Maximum error computation
       double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
 
-      IntervalMatrix Jz = (JJf_punc * symmetry*psi_0.diff(X)).mid();
+      IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
 
+      // Inflation of the parallelepiped
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
       output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
-      
     }
   }
-
 }
