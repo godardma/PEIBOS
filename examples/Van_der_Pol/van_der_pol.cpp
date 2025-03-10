@@ -18,7 +18,10 @@ int main()
   double epsilon = 0.05;
   
   PEIBOS(vectorField, {0.}, psi0, generators, epsilon, "Atlas");
-  PEIBOS(vectorField, {0.,tf}, psi0, generators, epsilon, "Van der Pol");
-}
 
-  
+  Figure2D output ("Van der Pol",GraphicOutput::VIBES|GraphicOutput::IPE);
+  output.set_axes(axis(0,{-4,4}),axis(1,{-4,4}));
+  output.set_window_properties({850,100},{800,800});
+
+  PEIBOS(vectorField, {0.,tf}, psi0, generators, epsilon, output);
+}

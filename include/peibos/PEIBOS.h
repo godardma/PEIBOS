@@ -159,13 +159,9 @@ Matrix inflate_flat_parallelepiped (IntervalMatrix Jz, double epsilon, double rh
   }
 }
 
-
 template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
 {
-  // Grpahical output
-  Figure3D output(output_name);
-  output.draw_axes();
   ColorMap cmap = peibos_cmap();
   
   // CAPD solver setup
@@ -191,49 +187,49 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
         for (double t2 = -1;t2 < 1; t2+=epsilon)
         {
 
-        // To get the flow function and its Jacobian (monodromy matrix) for [x]
-        IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-        IntervalVector Y = symmetry(psi_0.eval(X));
+          // To get the flow function and its Jacobian (monodromy matrix) for [x]
+          IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
+          IntervalVector Y = symmetry(psi_0.eval(X));
 
-        capd::IMatrix monodromyMatrix(3,3);
-        capd::ITimeMap::SolutionCurve solution(initialTime); 
-        capd::IVector c(3);
-        c[0] = to_capd(Y[0]);
-        c[1] = to_capd(Y[1]);
-        c[2] = to_capd(Y[2]);
-        capd::C1Rect2Set s(c);
-        timeMap(finalTime, s, solution);
-        capd::IVector result = timeMap(finalTime, s, monodromyMatrix);
-        IntervalMatrix JJf=to_codac(monodromyMatrix);
+          capd::IMatrix monodromyMatrix(3,3);
+          capd::ITimeMap::SolutionCurve solution(initialTime); 
+          capd::IVector c(3);
+          c[0] = to_capd(Y[0]);
+          c[1] = to_capd(Y[1]);
+          c[2] = to_capd(Y[2]);
+          capd::C1Rect2Set s(c);
+          timeMap(finalTime, s, solution);
+          capd::IVector result = timeMap(finalTime, s, monodromyMatrix);
+          IntervalMatrix JJf=to_codac(monodromyMatrix);
 
-        // To get the flow function and its Jacobian (monodromy matrix) for x_hat
-        auto xc = X.mid();
-        auto yc = (symmetry(psi_0.eval(xc))).mid();
+          // To get the flow function and its Jacobian (monodromy matrix) for x_hat
+          auto xc = X.mid();
+          auto yc = (symmetry(psi_0.eval(xc))).mid();
 
-        capd::IMatrix monodromyMatrix_punc(3,3);
-        capd::ITimeMap::SolutionCurve solution_punct(initialTime);
-        capd::IVector c_punct(3);
+          capd::IMatrix monodromyMatrix_punc(3,3);
+          capd::ITimeMap::SolutionCurve solution_punct(initialTime);
+          capd::IVector c_punct(3);
 
-        c_punct[0] = to_capd(yc[0]);
-        c_punct[1] = to_capd(yc[1]);
-        c_punct[2] = to_capd(yc[2]);
-        capd::C1Rect2Set s_punct(c_punct);
-        timeMap_punc(finalTime, s_punct, solution_punct);      
-        capd::IVector result_punct = timeMap_punc(finalTime, s_punct, monodromyMatrix_punc);
-        IntervalMatrix JJf_punc=to_codac(monodromyMatrix_punc);
+          c_punct[0] = to_capd(yc[0]);
+          c_punct[1] = to_capd(yc[1]);
+          c_punct[2] = to_capd(yc[2]);
+          capd::C1Rect2Set s_punct(c_punct);
+          timeMap_punc(finalTime, s_punct, solution_punct);      
+          capd::IVector result_punct = timeMap_punc(finalTime, s_punct, monodromyMatrix_punc);
+          IntervalMatrix JJf_punc=to_codac(monodromyMatrix_punc);
 
-        // Center of the parallelepiped
-        Vector z = Vector(to_codac(result).mid());
-        
-        // Maximum error computation
-        double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
+          // Center of the parallelepiped
+          Vector z = Vector(to_codac(result).mid());
+          
+          // Maximum error computation
+          double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
 
-        IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
+          IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
 
-        // Inflation of the parallelepiped
-        Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
+          // Inflation of the parallelepiped
+          Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-        output.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
+          figure_3d.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
         }
       }
@@ -242,11 +238,17 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 }
 
 template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
-  // Grpahical output
-  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
-  output.set_window_properties({50,100},{800,800});
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output);
+}
+
+template <typename T>
+void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+{
   ColorMap cmap = ColorMap::rainbow();
   
   // CAPD solver setup
@@ -310,11 +312,20 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
         // Inflation of the parallelepiped
         Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-        output.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
+        figure_2d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
     }
   }
+}
+
+template <typename T>
+void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  // Graphical output
+  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
+  output.set_window_properties({50,100},{800,800});
+  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output);
 }
 
 template <typename T>
@@ -327,11 +338,22 @@ void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, v
 }
 
 template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
-  // Grpahical output
-  Figure3D output(output_name);
-  output.draw_axes();
+  assert(gamma.dimension() == 2);
+  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, figure_2d);
+}
+
+template <typename T>
+void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+{
+  assert(gamma.dimension() == 3);
+  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, figure_3d);
+}
+
+template <typename T>
+void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+{
   ColorMap cmap = peibos_cmap();
 
   // Generate the symmetries from the generators
@@ -345,28 +367,28 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
       for (double t2 = -1;t2 < 1; t2+=epsilon)
       {
 
-      IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-      IntervalVector Y = symmetry(psi_0.eval(X));
+        IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
+        IntervalVector Y = symmetry(psi_0.eval(X));
 
-      IntervalMatrix JJf=f.diff(Y);
+        IntervalMatrix JJf=f.diff(Y);
 
-      auto xc = X.mid();
-      auto yc = (symmetry(psi_0.eval(xc))).mid();
+        auto xc = X.mid();
+        auto yc = (symmetry(psi_0.eval(xc))).mid();
 
-      IntervalMatrix JJf_punc=f.diff(yc).mid();
+        IntervalMatrix JJf_punc=f.diff(yc).mid();
 
-      // Center of the parallelepiped
-      Vector z = f.eval(yc).mid();
+        // Center of the parallelepiped
+        Vector z = f.eval(yc).mid();
 
-      // Maximum error computation
-      double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
+        // Maximum error computation
+        double rho = error( JJf, JJf_punc, psi_0, symmetry, X);
 
-      IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
+        IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
 
-      // Inflation of the parallelepiped
-      Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
+        // Inflation of the parallelepiped
+        Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-      output.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
+        figure_3d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
     }
@@ -374,11 +396,17 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
 }
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
-  // Grpahical output
-  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
-  output.set_window_properties({50,100},{800,800});
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  PEIBOS3D(f, psi_0, generators, epsilon, output);
+}
+
+template <typename T>
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+{
   ColorMap cmap = ColorMap::rainbow();
 
   // Generate the symmetries from the generators
@@ -411,10 +439,19 @@ void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
       // Inflation of the parallelepiped
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-      output.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
+      figure_2d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
 
     }
   }
+}
+
+template <typename T>
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  // Graphical output
+  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
+  output.set_window_properties({50,100},{800,800});
+  PEIBOS2D(f, psi_0, generators, epsilon, output);
 }
 
 template <typename T>
@@ -428,4 +465,18 @@ void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int
   {
     PEIBOS2D(f, psi_0, generators, epsilon, output_name);
   }
+}
+
+template <typename T>
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+{
+  assert(f.output_size() == 2);
+  PEIBOS2D(f, psi_0, generators, epsilon, figure_2d);
+}
+
+template <typename T>
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+{
+  assert(f.output_size() == 3);
+  PEIBOS3D(f, psi_0, generators, epsilon, figure_3d);
 }
