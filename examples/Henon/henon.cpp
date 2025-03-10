@@ -14,8 +14,8 @@ int main()
   VectorVar X(1);
   AnalyticFunction psi0 ({X},{cos(X[0]*PI/4.),sin(X[0]*PI/4.)});
 
-  vector<initializer_list<int>> generators ({{1,2},
-                                            {-2,1}});
+  vector<vector<int>> generators ({{1,2},
+                                  {-2,1}});
 
   double epsilon = 0.1;
   
