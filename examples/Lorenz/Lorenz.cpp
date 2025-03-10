@@ -24,9 +24,10 @@ int main()
   PEIBOS(vectorField, {0.}, psi0, generators, epsilon, "Atlas");
 
   Figure3D output ("Lorenz");
-  
+
   PEIBOS(vectorField, {tf}, psi0, generators, epsilon, output);
 
+  PEIBOS(vectorField, {tf}, psi0, generators, epsilon, {0.,1.,0.}, output);
 }
 
   

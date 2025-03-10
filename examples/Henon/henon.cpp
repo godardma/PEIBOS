@@ -21,6 +21,8 @@ int main()
   
   PEIBOS(f_id, psi0, generators, epsilon, "Atlas");
   PEIBOS(f, psi0, generators, epsilon, "Henon");
+
+  // PEIBOS(f, psi0, generators, epsilon, {1.,0.}, "Henon offset");
 }
 
   

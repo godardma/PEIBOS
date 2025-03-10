@@ -159,8 +159,12 @@ Matrix inflate_flat_parallelepiped (IntervalMatrix Jz, double epsilon, double rh
   }
 }
 
+// CAPD ODE ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// 3D
+
 template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
   ColorMap cmap = peibos_cmap();
   
@@ -189,7 +193,7 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 
           // To get the flow function and its Jacobian (monodromy matrix) for [x]
           IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-          IntervalVector Y = symmetry(psi_0.eval(X));
+          IntervalVector Y = symmetry(psi_0.eval(X))+offset;
 
           capd::IMatrix monodromyMatrix(3,3);
           capd::ITimeMap::SolutionCurve solution(initialTime); 
@@ -204,7 +208,7 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 
           // To get the flow function and its Jacobian (monodromy matrix) for x_hat
           auto xc = X.mid();
-          auto yc = (symmetry(psi_0.eval(xc))).mid();
+          auto yc = (symmetry(psi_0.eval(xc))+offset).mid();
 
           capd::IMatrix monodromyMatrix_punc(3,3);
           capd::ITimeMap::SolutionCurve solution_punct(initialTime);
@@ -238,6 +242,21 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 }
 
 template <typename T>
+void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+{
+  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_3d);
+}
+
+template <typename T>
+void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+{
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
 void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
   // Graphical output
@@ -246,8 +265,10 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
   PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output);
 }
 
+// 2D
+
 template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   ColorMap cmap = ColorMap::rainbow();
   
@@ -274,7 +295,7 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 
         // To get the flow function and its Jacobian (monodromy matrix) for [x]
         IntervalVector X({{t,t+epsilon}});
-        IntervalVector Y = symmetry(psi_0.eval(X));
+        IntervalVector Y = symmetry(psi_0.eval(X))+offset;
 
         capd::IMatrix monodromyMatrix(2,2);
         capd::ITimeMap::SolutionCurve solution(initialTime); 
@@ -288,7 +309,7 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 
         // To get the flow function and its Jacobian (monodromy matrix) for x_hat
         auto xc = X.mid();
-        auto yc = (symmetry(psi_0.eval(xc))).mid();
+        auto yc = (symmetry(psi_0.eval(xc))+offset).mid();
 
         capd::IMatrix monodromyMatrix_punc(2,2);
         capd::ITimeMap::SolutionCurve solution_punct(initialTime);
@@ -320,6 +341,21 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 }
 
 template <typename T>
+void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+{
+  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_2d);
+}
+
+template <typename T>
+void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+{
+  // Graphical output
+  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
+  output.set_window_properties({50,100},{800,800});
+  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
 void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
   // Graphical output
@@ -327,6 +363,8 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
   output.set_window_properties({50,100},{800,800});
   PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output);
 }
+
+// Generic function, calls according to the output size of the function
 
 template <typename T>
 void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
@@ -337,11 +375,29 @@ void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, v
     PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output_name);
 }
 
+// with 2D figure
+
+template <typename T>
+void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+{
+  assert(gamma.dimension() == 2);
+  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, figure_2d);
+}
+
 template <typename T>
 void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
   assert(gamma.dimension() == 2);
   PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, figure_2d);
+}
+
+// with 3D figure
+
+template <typename T>
+void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+{
+  assert(gamma.dimension() == 3);
+  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, figure_3d);
 }
 
 template <typename T>
@@ -351,8 +407,13 @@ void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, v
   PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, figure_3d);
 }
 
+
+// ANALYTIC FUNCTION //////////////////////////////////////////////////////////////////////////////////////////////////
+
+// 3D
+
 template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
   ColorMap cmap = peibos_cmap();
 
@@ -368,12 +429,12 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
       {
 
         IntervalVector X({{t1,t1+epsilon},{t2,t2+epsilon}});
-        IntervalVector Y = symmetry(psi_0.eval(X));
+        IntervalVector Y = symmetry(psi_0.eval(X))+offset;
 
         IntervalMatrix JJf=f.diff(Y);
 
         auto xc = X.mid();
-        auto yc = (symmetry(psi_0.eval(xc))).mid();
+        auto yc = (symmetry(psi_0.eval(xc))+offset).mid();
 
         IntervalMatrix JJf_punc=f.diff(yc).mid();
 
@@ -396,6 +457,21 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
 }
 
 template <typename T>
+void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+{
+  PEIBOS3D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_3d);
+}
+
+template <typename T>
+void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+{
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  PEIBOS3D(f, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
 void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
   // Graphical output
@@ -404,8 +480,10 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
   PEIBOS3D(f, psi_0, generators, epsilon, output);
 }
 
+// 2D
+
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   ColorMap cmap = ColorMap::rainbow();
 
@@ -419,12 +497,12 @@ void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
     {
 
       IntervalVector X({{t,t+epsilon}});
-      IntervalVector Y = symmetry(psi_0.eval(X));
+      IntervalVector Y = symmetry(psi_0.eval(X))+offset;
 
       IntervalMatrix JJf=f.diff(Y);
 
       auto xc = X.mid();
-      auto yc = (symmetry(psi_0.eval(xc))).mid();
+      auto yc = (symmetry(psi_0.eval(xc))+offset).mid();
 
       IntervalMatrix JJf_punc=f.diff(yc).mid();
 
@@ -446,25 +524,54 @@ void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
 }
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+{
+  PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_2d);
+}
+
+template <typename T>
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   // Graphical output
   Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
   output.set_window_properties({50,100},{800,800});
-  PEIBOS2D(f, psi_0, generators, epsilon, output);
+  PEIBOS2D(f, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
+void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
+}
+
+// Generic function, calls according to the output size of the function
+
+template <typename T>
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+{
+  if (f.output_size() == 3)
+  {
+    PEIBOS3D(f, psi_0, generators, epsilon, offset, output_name);
+  }
+  else if (f.output_size() == 2)
+  {
+    PEIBOS2D(f, psi_0, generators, epsilon, offset, output_name);
+  }
 }
 
 template <typename T>
 void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
-  if (f.output_size() == 3)
-  {
-    PEIBOS3D(f, psi_0, generators, epsilon, output_name);
-  }
-  else if (f.output_size() == 2)
-  {
-    PEIBOS2D(f, psi_0, generators, epsilon, output_name);
-  }
+  PEIBOS(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
+}
+
+// with 2D figure
+
+template <typename T>
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+{
+  assert(f.output_size() == 2);
+  PEIBOS2D(f, psi_0, generators, epsilon, offset, figure_2d);
 }
 
 template <typename T>
@@ -472,6 +579,15 @@ void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int
 {
   assert(f.output_size() == 2);
   PEIBOS2D(f, psi_0, generators, epsilon, figure_2d);
+}
+
+// with 3D figure
+
+template <typename T>
+void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+{
+  assert(f.output_size() == 3);
+  PEIBOS3D(f, psi_0, generators, epsilon, offset, figure_3d);
 }
 
 template <typename T>

@@ -20,6 +20,8 @@ int main()
   
   PEIBOS(f_id, psi0, generators, epsilon, "Atlas");
   PEIBOS(f, psi0, generators, epsilon, "Conform");
+
+  // PEIBOS(f, psi0, generators, epsilon, {-1.,0.,1.}, "Conform offseted");
 }
 
   
