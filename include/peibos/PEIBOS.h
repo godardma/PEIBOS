@@ -271,6 +271,7 @@ template <typename T>
 void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   ColorMap cmap = ColorMap::rainbow();
+  ColorMap cmap_peibos = peibos_cmap();
   
   // CAPD solver setup
   capd::IOdeSolver solver(gamma, 20);
@@ -333,7 +334,7 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
         // Inflation of the parallelepiped
         Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-        figure_2d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
+        figure_2d.draw_parallelepiped(z, A, {cmap.color(((double)i)/((double)symmetries.size()-1.0)),cmap_peibos.color(((double)i)/((double)symmetries.size()-1.0))});
 
       }
     }
@@ -365,6 +366,15 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
 }
 
 // Generic function, calls according to the output size of the function
+
+template <typename T>
+void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+{
+  if (gamma.dimension() == 3)
+    PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
+  else if (gamma.dimension() == 2)
+    PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
+}
 
 template <typename T>
 void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
@@ -486,6 +496,7 @@ template <typename T>
 void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   ColorMap cmap = ColorMap::rainbow();
+  ColorMap cmap_peibos = peibos_cmap();
 
   // Generate the symmetries from the generators
   vector<OctaSym> symmetries = generate_symmetries(generators, psi_0);
@@ -517,7 +528,7 @@ void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
       // Inflation of the parallelepiped
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
-      figure_2d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
+      figure_2d.draw_parallelepiped(z, A, {cmap.color(((double)i)/((double)symmetries.size()-1.0)),cmap_peibos.color(((double)i)/((double)symmetries.size()-1.0))});
 
     }
   }
