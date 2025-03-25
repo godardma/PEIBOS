@@ -10,17 +10,21 @@
 using namespace std;
 using namespace codac2;
 
-bool is_valid (Matrix A)
+// class Parallelepiped
+
+class Parallelepiped
 {
-  for (int i = 0; i < A.rows(); i++)
+  public:
+    Parallelepiped(Vector z, Matrix A) : z(z), A(A) {}
+    Vector z;
+    Matrix A;
+};
+
+bool is_valid (Matrix& A)
+{
+  if (A.is_nan() || IntervalMatrix(A).is_unbounded())
   {
-    for (int j = 0; j < A.cols(); j++)
-    {
-      if (std::isnan(A(i,j)) || A(i,j) == oo || A(i,j) == -oo)
-      {
-        return false;
-      }
-    }
+    return false;
   }
   return true;
 }
@@ -37,6 +41,27 @@ static ColorMap peibos_cmap()
   return cmap;
 }
 
+vector<Vector> get_corners(Parallelepiped p)
+{
+  vector<Vector> corners;
+  Vector v1 = p.z + p.A.col(0) + p.A.col(1) + p.A.col(2);
+  Vector v2 = p.z + p.A.col(0) - p.A.col(1) + p.A.col(2);
+  Vector v3 = p.z - p.A.col(0) - p.A.col(1) + p.A.col(2);
+  Vector v4 = p.z - p.A.col(0) + p.A.col(1) + p.A.col(2);
+  Vector v5 = p.z - p.A.col(0) + p.A.col(1) - p.A.col(2);
+  Vector v6 = p.z + p.A.col(0) + p.A.col(1) - p.A.col(2);
+  Vector v7 = p.z + p.A.col(0) - p.A.col(1) - p.A.col(2);
+  Vector v8 = p.z - p.A.col(0) - p.A.col(1) - p.A.col(2);
+  corners.push_back(v1);
+  corners.push_back(v2);
+  corners.push_back(v3);
+  corners.push_back(v4);
+  corners.push_back(v5);
+  corners.push_back(v6);
+  corners.push_back(v7);
+  corners.push_back(v8);
+  return corners;
+}
 
 double distance_from_line_to_origin(Eigen::Matrix<double,3,1> a, Eigen::Matrix<double,3,1> b)
 {
@@ -179,8 +204,10 @@ Matrix inflate_flat_parallelepiped (IntervalMatrix Jz, double epsilon, double rh
 // 3D
 
 template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
+  vector<Parallelepiped> output;
+
   ColorMap cmap = peibos_cmap();
   
   // CAPD solver setup
@@ -248,43 +275,48 @@ void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
           // Inflation of the parallelepiped
           Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
+          output.push_back(Parallelepiped(z, A));
+
           figure_3d.draw_parallelepiped(z, A, peibos_cmap().color(((double)i)/((double)symmetries.size()-1.0)));
 
         }
       }
     }
   }
+  return output;
 }
 
 template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
 {
-  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_3d);
+  return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_3d);
 }
 
 template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
-{
-  // Graphical output
-  Figure3D output(output_name);
-  output.draw_axes();
-  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output);
-}
-
-template <typename T>
-void PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   // Graphical output
   Figure3D output(output_name);
   output.draw_axes();
-  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output);
+  return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
+vector<Parallelepiped> PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output);
 }
 
 // 2D
 
 template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
+  vector<Parallelepiped> output;
+
   ColorMap cmap = ColorMap::rainbow();
   ColorMap cmap_peibos = peibos_cmap();
   
@@ -349,87 +381,90 @@ void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0,
         // Inflation of the parallelepiped
         Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
+        output.push_back(Parallelepiped(z, A));
+
         figure_2d.draw_parallelepiped(z, A, {cmap.color(((double)i)/((double)symmetries.size()-1.0)),cmap_peibos.color(((double)i)/((double)symmetries.size()-1.0))});
 
       }
     }
   }
+  return output;
 }
 
 template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
-  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_2d);
+  return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, Vector::zero(psi_0.output_size()), figure_2d);
 }
 
 template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
-{
-  // Graphical output
-  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
-  output.set_window_properties({50,100},{800,800});
-  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output);
-}
-
-template <typename T>
-void PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   // Graphical output
   Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
   output.set_window_properties({50,100},{800,800});
-  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output);
+  return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
+vector<Parallelepiped> PEIBOS2D(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  // Graphical output
+  Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
+  output.set_window_properties({50,100},{800,800});
+  return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output);
 }
 
 // Generic function, calls according to the output size of the function
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   if (gamma.dimension() == 3)
-    PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
+    return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
   else if (gamma.dimension() == 2)
-    PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
+    return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, output_name);
 }
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
   if (gamma.dimension() == 3)
-    PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output_name);
+    return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, output_name);
   else if (gamma.dimension() == 2)
-    PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output_name);
+    return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, output_name);
 }
 
 // with 2D figure
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   assert(gamma.dimension() == 2);
-  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, figure_2d);
+  return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, offset, figure_2d);
 }
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
   assert(gamma.dimension() == 2);
-  PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, figure_2d);
+  return PEIBOS2D(gamma, tfs, psi_0, generators, epsilon, figure_2d);
 }
 
 // with 3D figure
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
   assert(gamma.dimension() == 3);
-  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, figure_3d);
+  return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, offset, figure_3d);
 }
 
 template <typename T>
-void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
 {
   assert(gamma.dimension() == 3);
-  PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, figure_3d);
+  return PEIBOS3D(gamma, tfs, psi_0, generators, epsilon, figure_3d);
 }
 
 
@@ -438,8 +473,10 @@ void PEIBOS(capd::IMap& gamma, vector<double> tfs, AnalyticFunction<T>& psi_0, v
 // 3D
 
 template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS3D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
+  vector<Parallelepiped> output;
+
   ColorMap cmap = peibos_cmap();
 
   // Generate the symmetries from the generators
@@ -476,47 +513,55 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
         Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
         auto angle = acos((Jz.col(0)/Jz.col(0).norm()).dot(Jz.col(1)/Jz.col(1).norm()));
 
-        if (Jz.col(0)==Jz.col(1) || !is_valid(A) || (abs(angle).ub())<1e-3) // handle degenerated case (and almost degenerated cases)
+        if (Jz.col(0)==Jz.col(1) || !is_valid(A) || abs(angle).ub()<1e-3) // handle degenerated case (and almost degenerated cases)
           {
-            A = (f.eval(Y) - z).ub();
+            Vector z = f.eval(EvalMode::NATURAL, Y).mid();
+            Vector vars = (f.eval(EvalMode::NATURAL, Y) - z).ub();
+            A = Matrix({{vars[0], 0, 0}, {0, vars[1], 0}, {0, 0, vars[2]}});
           }
+
+        output.push_back(Parallelepiped(z, A));
 
         figure_3d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
 
       }
     }
   }
+
+  return output;
 }
 
 template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS3D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
 {
-  PEIBOS3D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_3d);
+  return PEIBOS3D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_3d);
 }
 
 template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
-{
-  // Graphical output
-  Figure3D output(output_name);
-  output.draw_axes();
-  PEIBOS3D(f, psi_0, generators, epsilon, offset, output);
-}
-
-template <typename T>
-void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS3D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   // Graphical output
   Figure3D output(output_name);
   output.draw_axes();
-  PEIBOS3D(f, psi_0, generators, epsilon, output);
+  return PEIBOS3D(f, psi_0, generators, epsilon, offset, output);
+}
+
+template <typename T>
+vector<Parallelepiped> PEIBOS3D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+{
+  // Graphical output
+  Figure3D output(output_name);
+  output.draw_axes();
+  return PEIBOS3D(f, psi_0, generators, epsilon, output);
 }
 
 // 2D
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS2D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
+  vector<Parallelepiped> output;
+
   ColorMap cmap = ColorMap::rainbow();
   ColorMap cmap_peibos = peibos_cmap();
 
@@ -550,82 +595,86 @@ void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
       // Inflation of the parallelepiped
       Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
 
+      output.push_back(Parallelepiped(z, A));
+
       figure_2d.draw_parallelepiped(z, A, {cmap.color(((double)i)/((double)symmetries.size()-1.0)),cmap_peibos.color(((double)i)/((double)symmetries.size()-1.0))});
 
     }
   }
+
+  return output;
 }
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS2D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
-  PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_2d);
+  return PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), figure_2d);
 }
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+vector<Parallelepiped> PEIBOS2D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   // Graphical output
   Figure2D output(output_name,GraphicOutput::VIBES | GraphicOutput::IPE);
   output.set_window_properties({50,100},{800,800});
-  PEIBOS2D(f, psi_0, generators, epsilon, offset, output);
+  return PEIBOS2D(f, psi_0, generators, epsilon, offset, output);
 }
 
 template <typename T>
-void PEIBOS2D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS2D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
-  PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
+  return PEIBOS2D(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
 }
 
 // Generic function, calls according to the output size of the function
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, string output_name)
 {
   if (f.output_size() == 3)
   {
-    PEIBOS3D(f, psi_0, generators, epsilon, offset, output_name);
+    return PEIBOS3D(f, psi_0, generators, epsilon, offset, output_name);
   }
   else if (f.output_size() == 2)
   {
-    PEIBOS2D(f, psi_0, generators, epsilon, offset, output_name);
+    return PEIBOS2D(f, psi_0, generators, epsilon, offset, output_name);
   }
 }
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, string output_name)
 {
-  PEIBOS(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
+  return PEIBOS(f, psi_0, generators, epsilon, Vector::zero(f.output_size()), output_name);
 }
 
 // with 2D figure
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure2D& figure_2d)
 {
   assert(f.output_size() == 2);
-  PEIBOS2D(f, psi_0, generators, epsilon, offset, figure_2d);
+  return PEIBOS2D(f, psi_0, generators, epsilon, offset, figure_2d);
 }
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure2D& figure_2d)
 {
   assert(f.output_size() == 2);
-  PEIBOS2D(f, psi_0, generators, epsilon, figure_2d);
+  return PEIBOS2D(f, psi_0, generators, epsilon, figure_2d);
 }
 
 // with 3D figure
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Vector offset, Figure3D& figure_3d)
 {
   assert(f.output_size() == 3);
-  PEIBOS3D(f, psi_0, generators, epsilon, offset, figure_3d);
+  return PEIBOS3D(f, psi_0, generators, epsilon, offset, figure_3d);
 }
 
 template <typename T>
-void PEIBOS(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
+vector<Parallelepiped> PEIBOS(AnalyticFunction<T>& f, AnalyticFunction<T>& psi_0, vector<vector<int>> generators , double epsilon, Figure3D& figure_3d)
 {
   assert(f.output_size() == 3);
-  PEIBOS3D(f, psi_0, generators, epsilon, figure_3d);
+  return PEIBOS3D(f, psi_0, generators, epsilon, figure_3d);
 }
