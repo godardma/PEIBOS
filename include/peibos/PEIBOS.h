@@ -10,6 +10,21 @@
 using namespace std;
 using namespace codac2;
 
+bool is_valid (Matrix A)
+{
+  for (int i = 0; i < A.rows(); i++)
+  {
+    for (int j = 0; j < A.cols(); j++)
+    {
+      if (std::isnan(A(i,j)) || A(i,j) == oo || A(i,j) == -oo)
+      {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 static ColorMap peibos_cmap()
 {
   ColorMap cmap( Model::HSV );
@@ -457,7 +472,14 @@ void PEIBOS3D(AnalyticFunction<T> f, AnalyticFunction<T>& psi_0, vector<vector<i
         IntervalMatrix Jz = (JJf_punc * IntervalMatrix(symmetry.permutation_matrix()) * psi_0.diff(xc)).mid();
 
         // Inflation of the parallelepiped
+
         Matrix A = inflate_flat_parallelepiped(Jz, epsilon, rho);
+        auto angle = acos((Jz.col(0)/Jz.col(0).norm()).dot(Jz.col(1)/Jz.col(1).norm()));
+
+        if (Jz.col(0)==Jz.col(1) || !is_valid(A) || (abs(angle).ub())<1e-3) // handle degenerated case (and almost degenerated cases)
+          {
+            A = (f.eval(Y) - z).ub();
+          }
 
         figure_3d.draw_parallelepiped(z, A, cmap.color(((double)i)/((double)symmetries.size()-1.0)));
 
