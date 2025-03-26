@@ -515,8 +515,8 @@ vector<Parallelepiped> PEIBOS3D(AnalyticFunction<T>& f, AnalyticFunction<T>& psi
 
         if (Jz.col(0)==Jz.col(1) || !is_valid(A) || abs(angle).ub()<1e-3) // handle degenerated case (and almost degenerated cases)
           {
-            Vector z = f.eval(EvalMode::NATURAL, Y).mid();
-            Vector vars = (f.eval(EvalMode::NATURAL, Y) - z).ub();
+            z = f.eval(Y).mid();
+            Vector vars = (f.eval(Y) - z).ub();
             A = Matrix({{vars[0], 0, 0}, {0, vars[1], 0}, {0, 0, vars[2]}});
           }
 
