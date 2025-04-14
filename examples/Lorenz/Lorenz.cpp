@@ -10,7 +10,7 @@ int main()
   vectorField.setParameter("rho", 28.);
   vectorField.setParameter("beta", 8/3);
   
-  double tf=0.1;
+  double tf=0.05;
 
   VectorVar X(2);
   AnalyticFunction psi0 ({X},{1/sqrt(1+sqr(X[0])+sqr(X[1])),X[0]/sqrt(1+sqr(X[0])+sqr(X[1])),X[1]/sqrt(1+sqr(X[0])+sqr(X[1]))});
