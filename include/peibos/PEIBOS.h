@@ -164,10 +164,13 @@ Matrix inflate_flat_parallelepiped_3D (IntervalMatrix Jz, double epsilon, double
   double d12=distance_from_line_to_origin(v1, v2);
   double d13=distance_from_line_to_origin(v2, v3);
 
-  double d=max(d12,d13);
+  double d=min(d12,d13);
   
+  // Ancien inflate
   a1*=(1+rho/d);
   a2*=(1+rho/d);
+
+
   a3*=(rho/a3.norm());
 
   Matrix A = Matrix({{a1[0], a2[0], a3[0]}, {a1[1], a2[1], a3[1]}, {a1[2], a2[2], a3[2]}});
@@ -212,6 +215,8 @@ vector<Parallelepiped> PEIBOS3D(capd::IMap& gamma, vector<double> tfs, AnalyticF
   
   // CAPD solver setup
   capd::IOdeSolver solver(gamma, 20);
+
+  
   solver.setAbsoluteTolerance(1e-20);
   solver.setRelativeTolerance(1e-20);
 
